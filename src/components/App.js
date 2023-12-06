@@ -1,114 +1,118 @@
 import 'modern-normalize';
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlobalStyle } from './GlobalStyle';
-import { fetchImages } from './Handler';
+import { fetchNewImages } from './Handler';
 import { QueryForm } from './Form/Form';
 import { ImageGallery } from './ImageGalery/ImageGallery';
 import { Circles } from 'react-loader-spinner';
 import { LoaderWrap, Load, Searchbar, Wrapper, LoadWrap } from './AppStyled';
 
-export class App extends Component {
-  state = {
-    images: [],
-    dateQuery: '',
-    currentPage: 1,
-    isLoading: false,
-    totalPages: 0,
-  };
+export const App =()=> {
+  
+  const [images, setImages] = useState([]);
+  const [dateQuery, setDateQuery]=useState('');
+  const [currentPage, setCurrentPage]=useState(1);
+  const [isLoading, setIsLoading]=useState(false);
+  const [totalPages, setTotalPages]=useState(0);
 
   /**
    *Methods
    */
 
-  handleSubmit = newQuery => {
-    this.setState({
-      dateQuery: `${Date.now()}/${newQuery}`,
-      currentPage: 1,
-      perPage: 12,
-      images: [],
-      totalPages: 0,
-    });
+ const handleSubmit = newQuery => {
+    
+  setDateQuery (`${Date.now()}/${newQuery}`);
+  setCurrentPage (1);     
+  setImages([]);
+  setTotalPages(0);
+    
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      currentPage:
-        prevState.currentPage < this.state.totalPages
-          ? prevState.currentPage + 1
-          : prevState.currentPage,
-    }));
+  const handleLoadMore = () => {
+   
+    setCurrentPage(prevCurrentPage=>(prevCurrentPage < totalPages
+      ? prevCurrentPage + 1
+      : prevCurrentPage) )
+        
+    
   };
 
   /**
    * Update
    */
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { dateQuery, currentPage, perPage } = this.state;
-    if (
-      prevState.dateQuery !== dateQuery ||
-      prevState.currentPage !== currentPage
-    ) {
-      this.setState({ isLoading: true });
+  useEffect (()=>{
+    if (dateQuery===''){
+      return;
+    }
 
-      try {
-        const fetchedImages = await fetchImages(
+     
+    setIsLoading( true );
+
+
+      const fetchImages =async ()=>
+      {try {
+        const fetchedImages = await fetchNewImages(
           dateQuery,
           currentPage,
-          perPage
-        );
-        this.setState(prevState => ({
-          images: [...prevState.images, ...fetchedImages.hits],
-          totalPages: Math.ceil(
-            Number(fetchedImages.totalHits) / Number(perPage)
-          ),
-        }));
+          );
+          setImages(prevImages => (
+          [...prevImages, ...fetchedImages.hits]      
+          
+        ));
+
+
+        setTotalPages(prevTotalPages=>(Math.ceil(
+          Number(fetchedImages.totalHits) / Number(12))) );
+
+
       } catch (error) {
         alert('Error fetching images:', error);
       } finally {
-        this.setState({
-          isLoading: false,
-        });
-      }
-    }
-  }
+        setIsLoading( false );
+        };}
+      
+        fetchImages();
+  },[dateQuery, currentPage])
+ 
+  return (
+    <Wrapper>
+      <header>
+        <Searchbar>
+          <QueryForm onSubmit={handleSubmit}></QueryForm>
+        </Searchbar>
+      </header>
+
+      <div>
+        {isLoading && (
+          <LoaderWrap>
+            <Circles
+              height="80"
+              width="80"
+              color="#3f51b5"
+              ariaLabel="circles-loading"
+              wrapperStyle={{}}
+              wrapperClass=""
+              visible={true}
+            />
+          </LoaderWrap>
+        )}
+        {images.length > 0 && <ImageGallery images={images} />}
+      </div>
+
+      <LoadWrap>
+        {images.length > 0 && (
+          <Load onClick={handleLoadMore}>Load more</Load>
+        )}
+      </LoadWrap>
+
+      <GlobalStyle />
+    </Wrapper>
+  );
+    
+  };
 
  
-  render() {
-    const { isLoading, images } = this.state;
-    return (
-      <Wrapper>
-        <header>
-          <Searchbar>
-            <QueryForm onSubmit={this.handleSubmit}></QueryForm>
-          </Searchbar>
-        </header>
+ 
+ 
 
-        <div>
-          {isLoading && (
-            <LoaderWrap>
-              <Circles
-                height="80"
-                width="80"
-                color="#3f51b5"
-                ariaLabel="circles-loading"
-                wrapperStyle={{}}
-                wrapperClass=""
-                visible={true}
-              />
-            </LoaderWrap>
-          )}
-          {images.length > 0 && <ImageGallery images={images} />}
-        </div>
-
-        <LoadWrap>
-          {images.length > 0 && (
-            <Load onClick={this.handleLoadMore}>Load more</Load>
-          )}
-        </LoadWrap>
-
-        <GlobalStyle />
-      </Wrapper>
-    );
-  }
-}
