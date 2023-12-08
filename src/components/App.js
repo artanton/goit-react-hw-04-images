@@ -7,74 +7,64 @@ import { ImageGallery } from './ImageGalery/ImageGallery';
 import { Circles } from 'react-loader-spinner';
 import { LoaderWrap, Load, Searchbar, Wrapper, LoadWrap } from './AppStyled';
 
-export const App =()=> {
-  
+export const App = () => {
   const [images, setImages] = useState([]);
-  const [dateQuery, setDateQuery]=useState('');
-  const [currentPage, setCurrentPage]=useState(1);
-  const [isLoading, setIsLoading]=useState(false);
-  const [totalPages, setTotalPages]=useState(0);
+  const [dateQuery, setDateQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
 
   /**
    *Methods
    */
 
- const handleSubmit = newQuery => {
-    
-  setDateQuery (`${Date.now()}/${newQuery}`);
-  setCurrentPage (1);     
-  setImages([]);
-  setTotalPages(0);
-    
+  const handleSubmit = newQuery => {
+    if (newQuery === '') {
+      return;
+    }
+
+    setDateQuery(`${Date.now()}/${newQuery}`);
+    setCurrentPage(1);
+    setImages([]);
+    setTotalPages(0);
   };
 
   const handleLoadMore = () => {
-   
-    setCurrentPage(prevCurrentPage=>(prevCurrentPage < totalPages
-      ? prevCurrentPage + 1
-      : prevCurrentPage) )
-        
-    
+    setCurrentPage(prevCurrentPage =>
+      prevCurrentPage < totalPages ? prevCurrentPage + 1 : prevCurrentPage
+    );
   };
+
+ 
 
   /**
    * Update
    */
 
-  useEffect (()=>{
-    if (dateQuery===''){
+  useEffect(() => {
+    if (dateQuery === '') {
       return;
     }
+    setIsLoading(true);
 
-     
-    setIsLoading( true );
+    const fetchImages = async () => {
+      try {
+        const fetchedImages = await fetchNewImages(dateQuery, currentPage);
+        setImages(prevImages => [...prevImages, ...fetchedImages.hits]);
 
-
-      const fetchImages =async ()=>
-      {try {
-        const fetchedImages = await fetchNewImages(
-          dateQuery,
-          currentPage,
-          );
-          setImages(prevImages => (
-          [...prevImages, ...fetchedImages.hits]      
-          
-        ));
-
-
-        setTotalPages(prevTotalPages=>(Math.ceil(
-          Number(fetchedImages.totalHits) / Number(12))) );
-
-
+        setTotalPages(prevTotalPages =>
+          Math.ceil(Number(fetchedImages.totalHits) / Number(12))
+        );
       } catch (error) {
         alert('Error fetching images:', error);
       } finally {
-        setIsLoading( false );
-        };}
-      
-        fetchImages();
-  },[dateQuery, currentPage])
- 
+        setIsLoading(false);
+      }
+    };
+
+    fetchImages();
+  }, [dateQuery, currentPage]);
+
   return (
     <Wrapper>
       <header>
@@ -101,7 +91,7 @@ export const App =()=> {
       </div>
 
       <LoadWrap>
-        {images.length > 0 && (
+        {images.length > 0 && currentPage < totalPages && (
           <Load onClick={handleLoadMore}>Load more</Load>
         )}
       </LoadWrap>
@@ -109,10 +99,4 @@ export const App =()=> {
       <GlobalStyle />
     </Wrapper>
   );
-    
-  };
-
- 
- 
- 
-
+};
